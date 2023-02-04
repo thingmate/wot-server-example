@@ -1,0 +1,27 @@
+{
+  "name": "wot-sever",
+  "version": "1.0.0",
+  "main": "src/main.ts",
+  "license": "MIT",
+  "scripts": {
+    "dev": "ts-node-dev --respawn ./src/main.ts",
+    "run": "ts-node ./src/main.ts"
+  },
+  "dependencies": {
+    "@lirx/core": "^1.2.0",
+    "@node-wot/binding-http": "^0.8.4",
+    "@node-wot/binding-websockets": "^0.8.4",
+    "@node-wot/core": "^0.8.4",
+    "meross-cloud": "^2.4.0",
+    "@lirx/promise": "^1.1.0",
+    "@thingmate/wot-scripting-api": "1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.18",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "tslib": "^2.5.0",
+    "typescript": "^4.9.4",
+    "wot-typescript-definitions": "^0.8.0-SNAPSHOT.23"
+  }
+}

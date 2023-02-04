@@ -1,0 +1,136 @@
+import { IObservable } from '@lirx/core';
+import { Callback, type DeviceDefinition, type MerossCloudDevice as MerossCloudDeviceLegacy, MessageId } from 'meross-cloud';
+import { promisify } from 'util';
+import { fromBasicNodeJSEventEmitter } from '../../../misc/from-node-js-event-emitter';
+import { IGetSystemAbilitiesResponse, IGetSystemAllDataResponse } from './meross-cloud-device.types';
+
+export type IPublishMessageMethod =
+  | 'GET'
+  | 'SET'
+;
+
+
+export class MerossCloudDevice {
+  readonly uuid: string;
+  readonly connected$: IObservable<void>;
+  readonly close$: IObservable<any>;
+  readonly error$: IObservable<any>;
+  readonly reconnect$: IObservable<any>;
+  readonly data$: IObservable<any>;
+
+  private readonly _instance: MerossCloudDeviceLegacy;
+
+  private readonly _publishMessage: (
+    method: IPublishMessageMethod,
+    namespace: string,
+    payload: any,
+  ) => Promise<any>;
+
+  private readonly _getSystemAllData: () => Promise<IGetSystemAllDataResponse>;
+  private readonly _getSystemDebug: () => Promise<any>;
+  private readonly _getSystemAbilities: () => Promise<IGetSystemAbilitiesResponse>;
+
+  private readonly _controlToggle: () => Promise<any>;
+  private readonly _controlToggleX: () => Promise<any>;
+  private readonly _controlSpray: () => Promise<any>;
+  private readonly _controlRollerShutterPosition: () => Promise<any>;
+
+  constructor(
+    deviceDef: DeviceDefinition,
+    instance: MerossCloudDeviceLegacy,
+  ) {
+    this.uuid = deviceDef.uuid;
+    this.connected$ = fromBasicNodeJSEventEmitter<void>(instance, 'connected');
+    this.close$ = fromBasicNodeJSEventEmitter<any>(instance, 'close');
+    this.error$ = fromBasicNodeJSEventEmitter<void>(instance, 'error');
+    this.reconnect$ = fromBasicNodeJSEventEmitter<void>(instance, 'reconnect');
+    this.data$ = fromBasicNodeJSEventEmitter<void>(instance, 'data');
+    // device.on('data', (namespace, payload) => {
+    //     console.log('DEV: ' + deviceId + ' ' + namespace + ' - data: ' + JSON.stringify(payload));
+    // });
+
+    this._instance = instance;
+
+    this._publishMessage = promisify(instance.publishMessage.bind(instance));
+
+    this._getSystemAllData = promisify(instance.getSystemAllData.bind(instance));
+    this._getSystemDebug = promisify(instance.getSystemDebug.bind(instance));
+    this._getSystemAbilities = promisify(instance.getSystemAbilities.bind(instance));
+    //     const getSystemReport = promisify(device.getSystemReport);
+    //     const getSystemRuntime = promisify(device.getSystemRuntime);
+    //     const getSystemDNDMode = promisify(device.getSystemDNDMode);
+    //     const getOnlineStatus = promisify(device.getOnlineStatus);
+    //     const getConfigWifiList = promisify(device.getConfigWifiList);
+    //     const getConfigTrace = promisify(device.getConfigTrace);
+    //     const getControlPowerConsumption = promisify(device.getControlPowerConsumption);
+    //     const getControlPowerConsumptionX = promisify(device.getControlPowerConsumptionX);
+    //     const getControlElectricity = promisify(device.getControlElectricity);
+    //     const getRollerShutterState = promisify(device.getRollerShutterState);
+    //     const getRollerShutterPosition = promisify(device.getRollerShutterPosition);
+    //     const getFilterMaintenance = promisify(device.getFilterMaintenance);
+    //     const getPhysicalLockState = promisify(device.getPhysicalLockState);
+    //     const getFanState = promisify(device.getFanState);
+
+    this._controlToggle = promisify(instance.controlToggle.bind(instance));
+    this._controlToggleX = promisify(instance.controlToggleX.bind(instance));
+    this._controlSpray = promisify(instance.controlSpray.bind(instance));
+    this._controlRollerShutterPosition = promisify(instance.controlRollerShutterPosition.bind(instance));
+    //     const controlRollerShutterUp = promisify(device.controlRollerShutterUp);
+    //     const controlRollerShutterDown = promisify(device.controlRollerShutterDown);
+    //     const controlRollerShutterStop = promisify(device.controlRollerShutterStop);
+    //     const controlGarageDoor = promisify(device.controlGarageDoor);
+    //     const controlLight = promisify(device.controlLight);
+    //     const controlDiffusorSpray = promisify(device.controlDiffusorSpray);
+    //     const controlDiffusorLight = promisify(device.controlDiffusorLight);
+    //     const controlThermostatMode = promisify(device.controlThermostatMode);
+    //     const controlPhysicalLock = promisify(device.controlPhysicalLock);
+    //     const controlFan = promisify(device.controlFan);
+    //     const setSystemDNDMode = promisify(device.setSystemDNDMode);
+  }
+
+  isOnline(): Promise<boolean> {
+    return this.getSystemAbilities()
+      .then(
+        () => true,
+        () => false,
+      );
+  }
+
+  publishMessage<GResult extends object>(
+    method: IPublishMessageMethod,
+    namespace: string,
+    payload: any,
+  ): Promise<GResult> {
+    return this._publishMessage(method, namespace, payload);
+  }
+
+  // get all data
+  get$Appliance$System$All(): Promise<IGetSystemAllDataResponse> {
+    return this.publishMessage<IGetSystemAllDataResponse>('GET', 'Appliance.System.All', {});
+  }
+
+  getSystemDebug(): Promise<any> {
+    return this._getSystemDebug();
+  }
+
+  getSystemAbilities(): Promise<IGetSystemAbilitiesResponse> {
+    return this._getSystemAbilities();
+  }
+
+  controlToggle(): Promise<any> {
+    return this._controlToggle();
+  }
+
+  controlToggleX(): Promise<any> {
+    return this._controlToggleX();
+  }
+
+  controlSpray(): Promise<any> {
+    return this._controlSpray();
+  }
+
+  controlRollerShutterPosition(): Promise<any> {
+    return this._controlRollerShutterPosition();
+  }
+
+}
