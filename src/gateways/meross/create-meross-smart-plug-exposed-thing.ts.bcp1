@@ -1,0 +1,178 @@
+import {
+  createExposedThingBuilder, getOppositeSmartPlugState,
+  IExposedThing,
+  IExposedThingAction,
+  ISmartPlugConfig, ISmartPlugConsumption, ISmartPlugConsumptionHistory,
+  ISmartPlugState,
+  IWoT,
+} from '@thingmate/wot-scripting-api';
+import {
+  IExposedThingProperty
+} from '@thingmate/wot-scripting-api/src/wot/exposed-thing/components/property/esposed-thing-property.trait-collection';
+import { InferThingPropertyNames } from '@thingmate/wot-scripting-api/src/wot/thing/thing-properties-config.type';
+import { IGet$Appliance$Control$ConsumptionX$Response } from './classes/abilities/appliance.control.consumption-x';
+import { IGet$Appliance$Control$Electricity$Response } from './classes/abilities/appliance.control.electricity';
+import { IGet$Appliance$Control$ToggleX$Response } from './classes/abilities/appliance.control.toggle-x';
+import { MerossCloudDevice } from './classes/meross-cloud-device.class';
+import { IElectricityConsumption } from './classes/meross-cloud-device.types';
+import { STATE } from './classes/state.enum';
+
+export async function createMerossSmartPlugExposedThing(
+  WoT: IWoT,
+  device: MerossCloudDevice,
+  channel: number = 0,
+): Promise<IExposedThing<ISmartPlugConfig>> {
+
+  const builder = createExposedThingBuilder<ISmartPlugConfig>({
+    // id: device.definition.uuid,
+    id: `urn:uuid:${device.definition.uuid}`,
+    title: device.definition.uuid,
+    description: `Meross smart plug`,
+    name: device.definition.devName,
+  });
+
+  // builder.addProperty<number>(
+  //   'channels',
+  //   {
+  //     type: 'integer',
+  //     readOnly: true,
+  //   },
+  //   (property: IExposedThingProperty<number>): void => {
+  //     property.onRead(() => {
+  //       return device.definition.channels.length;
+  //     });
+  //   },
+  // );
+
+  const readState = (): Promise<ISmartPlugState> => {
+    return device.get$Appliance$Control$ToggleX({
+      togglex: { channel },
+    })
+      .then((response: IGet$Appliance$Control$ToggleX$Response): ISmartPlugState => {
+        return (response.togglex.onoff === STATE.ON)
+          ? 'on'
+          : 'off';
+      });
+  };
+
+  const writeState = (
+    state: ISmartPlugState,
+    emitChange: () => void,
+  ): Promise<void> => {
+    return device.set$Appliance$Control$ToggleX({
+      togglex: {
+        channel,
+        onoff: (state === 'on')
+          ? STATE.ON
+          : STATE.OFF,
+      },
+    })
+      .then(emitChange);
+  };
+
+  const readConsumption = (): Promise<ISmartPlugConsumption> => {
+    return device.get$Appliance$Control$Electricity()
+      .then((response: IGet$Appliance$Control$Electricity$Response): ISmartPlugConsumption => {
+        const {
+          current,
+          voltage,
+          power
+        } = response.electricity;
+        return {
+          current: current / 1000,
+          voltage: voltage / 10,
+          power: power / 100,
+        };
+      });
+  };
+
+  const readConsumptionHistory = (): Promise<ISmartPlugConsumptionHistory[]> => {
+    return device.get$Appliance$Control$ConsumptionX()
+      .then((response: IGet$Appliance$Control$ConsumptionX$Response): ISmartPlugConsumptionHistory[] => {
+        return response.consumptionx.map(({ date, value }: IElectricityConsumption): ISmartPlugConsumptionHistory => {
+          const start: number = Date.parse(date);
+          const _start: Date = new Date(start);
+          const end: number = new Date(_start.getFullYear(), _start.getMonth(), _start.getDate() + 1).getTime();
+
+          return {
+            power: value,
+            start,
+            end,
+          };
+        });
+      });
+  };
+
+  builder.addProperty<'state'>(
+    'state',
+    {
+      // type: 'string',
+      enum: ['on', 'off'],
+    },
+    (property: IExposedThingProperty<'state', ISmartPlugState>): void => {
+      property.onRead(readState);
+      property.onWrite((state: ISmartPlugState): Promise<void> => {
+        return writeState(state, property.emitChange);
+      });
+
+      // TODO subscribe/unsubscribe
+    },
+  );
+
+  builder.addProperty<'consumption'>(
+    'consumption',
+    {
+      type: 'object',
+      properties: {
+        current: {
+          type: 'number',
+          unit: 'A',
+        },
+        voltage: {
+          type: 'number',
+          unit: 'V',
+        },
+        power: {
+          type: 'number',
+          unit: 'W',
+        },
+      },
+      readOnly: true,
+    },
+    (property: IExposedThingProperty<'consumption', ISmartPlugConsumption>): void => {
+      property.onRead(readConsumption);
+    },
+  );
+
+  builder.addAction<'toggle'>(
+    'toggle',
+    {
+      data: {
+        enum: ['on', 'off'],
+      },
+      dataResponse: {
+        enum: ['on', 'off'],
+      },
+    },
+    (action: IExposedThingAction<'toggle', ISmartPlugState, ISmartPlugState>, thing: IExposedThing<ISmartPlugConfig>): void => {
+      action.onInvoke((state?: ISmartPlugState): Promise<ISmartPlugState> => {
+        const getState = (): Promise<ISmartPlugState> => {
+          return (state === void 0)
+            ? readState()
+              .then(getOppositeSmartPlugState)
+            : Promise.resolve(state);
+        };
+
+        return getState()
+          .then((state: ISmartPlugState): Promise<ISmartPlugState> => {
+            return writeState(state, thing.getProperty('state').emitChange)
+              .then((): ISmartPlugState => {
+                return state;
+              });
+          });
+      });
+    },
+  );
+
+  return builder.produce(WoT);
+}

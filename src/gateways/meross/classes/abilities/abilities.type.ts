@@ -4,6 +4,7 @@ import { IAppliance$Control$Electricity$Ability } from './appliance.control.elec
 import { IAppliance$Control$ToggleX$Ability } from './appliance.control.toggle-x';
 import { IAppliance$System$Ability$Ability } from './appliance.system.ability.type';
 import { IAppliance$System$All$Ability } from './appliance.system.all.type';
+import { IAppliance$System$Firmware$Ability } from './appliance.system.firmware.type';
 
 export interface IAbilities {
   // 'Appliance.Config.Key': IAbility<unknown, {}>,
@@ -12,7 +13,7 @@ export interface IAbilities {
   // 'Appliance.Config.Trace': {},
   'Appliance.System.All': IAppliance$System$All$Ability;
   // 'Appliance.System.Hardware': {},
-  'Appliance.System.Firmware': {},
+  'Appliance.System.Firmware': IAppliance$System$Firmware$Ability;
   // 'Appliance.System.Debug': {},
   // 'Appliance.System.Online': {},
   // 'Appliance.System.Time': {},

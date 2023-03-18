@@ -1,15 +1,12 @@
-import { IDigest, ISystem } from '../meross-cloud-device.types';
+import { IDigest, ISystem, ISystemFirmware } from '../meross-cloud-device.types';
 import { IAbility, IAbilityBodies } from './ability.type';
 
-// Appliance.System.All
-export interface IGet$Appliance$System$All$Response {
-  all: {
-    system: ISystem;
-    digest: IDigest;
-  };
+// Appliance.System.Firmware
+export interface IGet$Appliance$System$Firmware$Response {
+  firmware: ISystemFirmware;
 }
 
-export type IAppliance$System$All$Ability = IAbility<
-  IAbilityBodies<{}, IGet$Appliance$System$All$Response>,
+export type IAppliance$System$Firmware$Ability = IAbility<
+  IAbilityBodies<{}, IGet$Appliance$System$Firmware$Response>,
   IAbilityBodies<never, never>
 >

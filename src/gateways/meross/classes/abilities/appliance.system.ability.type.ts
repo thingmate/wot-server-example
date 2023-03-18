@@ -1,9 +1,10 @@
+import { IDeviceAbilities } from '../meross-cloud-device.types';
 import { IAbility, IAbilityBodies } from './ability.type';
 
 // Appliance.System.Ability
 export interface IGet$Appliance$System$Ability$Response {
   payloadVersion: number;
-  ability: Record<string, object>;
+  ability: IDeviceAbilities;
   // ability: {
   //   'Appliance.Config.Key': {},
   //   'Appliance.Config.WifiList': {},

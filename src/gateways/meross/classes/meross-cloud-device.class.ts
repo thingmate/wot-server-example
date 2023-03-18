@@ -14,7 +14,8 @@ import {
 } from './abilities/appliance.control.toggle-x';
 import { IGet$Appliance$System$Ability$Response } from './abilities/appliance.system.ability.type';
 import { IGet$Appliance$System$All$Response } from './abilities/appliance.system.all.type';
-
+import { IGet$Appliance$System$Firmware$Response } from './abilities/appliance.system.firmware.type';
+import { IDeviceAbilities } from './meross-cloud-device.types';
 
 export type IPublishMessageMethod =
   | 'GET'
@@ -56,13 +57,31 @@ export class MerossCloudDevice {
     this._publishMessage = promisify(instance.publishMessage.bind(instance));
   }
 
-  isOnline(): Promise<boolean> {
-    return this.get$Appliance$System$Ability()
-      .then(
-        () => true,
-        () => false,
-      );
+  init(): Promise<IDeviceAbilities> {
+    return this.get$Appliance$System$Firmware()
+      .then((response: IGet$Appliance$System$Firmware$Response) => {
+        this._instance.setKnownLocalIp(response.firmware.innerIp);
+        (this._instance as any).cloudInst.onlyLocalForGet = true;
+
+        return this.get$Appliance$System$Ability()
+          .catch(() => {
+            this._instance.removeKnownLocalIp();
+            (this._instance as any).cloudInst.onlyLocalForGet = false;
+            return this.get$Appliance$System$Ability();
+          })
+          .then((response: IGet$Appliance$System$Ability$Response): IDeviceAbilities => {
+            return response.ability;
+          });
+      });
   }
+
+  // isOnline(): Promise<boolean> {
+  //   return this.get$Appliance$System$Ability()
+  //     .then(
+  //       () => true,
+  //       () => false,
+  //     );
+  // }
 
   publishMessage<GMethod extends IPublishMessageMethod, GAbilityName extends keyof IAbilities>(
     method: GMethod,
@@ -72,6 +91,12 @@ export class MerossCloudDevice {
     return this._publishMessage(method, name, requestBody);
   }
 
+  setKnownLocalIp(
+    ip: string,
+  ): void {
+    this._instance.setKnownLocalIp(ip);
+  }
+
   /* CONFIG */
 
   /* SYSTEM */
@@ -79,6 +104,10 @@ export class MerossCloudDevice {
   // get all data
   get$Appliance$System$All(): Promise<IGet$Appliance$System$All$Response> {
     return this.publishMessage('GET', 'Appliance.System.All', {});
+  }
+
+  get$Appliance$System$Firmware(): Promise<IGet$Appliance$System$Firmware$Response> {
+    return this.publishMessage('GET', 'Appliance.System.Firmware', {});
   }
 
   // get abilities
@@ -91,7 +120,6 @@ export class MerossCloudDevice {
   // }
 
   /* CONTROL */
-
 
   get$Appliance$Control$ToggleX(
     requestBody: IGet$Appliance$Control$ToggleX$Request,

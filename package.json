@@ -13,7 +13,7 @@
     "@node-wot/binding-websockets": "^0.8.4",
     "@node-wot/core": "^0.8.4",
     "meross-cloud": "^2.4.0",
-    "@lirx/promise": "^1.1.0",
+    "@lirx/async-task": "^0.8.0",
     "@thingmate/wot-scripting-api": "1.0.0"
   },
   "devDependencies": {
@@ -23,5 +23,12 @@
     "tslib": "^2.5.0",
     "typescript": "^4.9.4",
     "wot-typescript-definitions": "^0.8.0-SNAPSHOT.23"
-  }
+  },
+  "linkedDependencies": [
+    "@lirx/core",
+    "@lirx/utils",
+    "@lirx/promise",
+    "@lirx/async-task",
+    "@thingmate/wot-scripting-api"
+  ]
 }

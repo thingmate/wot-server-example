@@ -72,7 +72,7 @@ export interface IDigest {
 
 export interface IElectricityConsumption {
   date: string; // format: '2023-01-31'
-  time: number; // in s
+  time: number; // timestamp in s
   value: number;
 }
 
@@ -88,6 +88,8 @@ export interface IElectricity {
   power: number;
   config: IElectricityConsumptionConfig;
 }
+
+export type IDeviceAbilities = Record<string, object>;
 
 /** GET/SET DATA **/
 

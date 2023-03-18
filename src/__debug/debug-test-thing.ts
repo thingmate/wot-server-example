@@ -1,7 +1,6 @@
-import { createConsumedThingFromThingDescription, fetchTD, IConsumedThing, IWoT } from '@thingmate/wot-scripting-api';
+import { Abortable } from '@lirx/async-task';
+import { createExposedThingFromThingDescription, IWoT } from '@thingmate/wot-scripting-api';
 import { ExposedThingInit } from 'wot-typescript-definitions';
-import { IPromiseLikeOrValue } from '@lirx/promise';
-import { createExposedThingFromThingDescription } from '@thingmate/wot-scripting-api';
 
 const td: ExposedThingInit = {
   title: 'Test Thing',
@@ -24,9 +23,22 @@ const td: ExposedThingInit = {
   },
 } satisfies ExposedThingInit;
 
-
 export async function debugTestThing(WoT: IWoT) {
-  const thing = await createExposedThingFromThingDescription(WoT, td);
+  const abortable = Abortable.never;
+
+  interface IConfig {
+    properties: {
+      state: boolean;
+    };
+    actions: {
+      toggle: [boolean, boolean];
+    };
+    events: {
+      'state-change': boolean;
+    };
+  }
+
+  const thing = await createExposedThingFromThingDescription<IConfig>(WoT, td, { abortable }).toPromise();
 
   console.log(`[INIT] "${thing.getDescription().title}"`);
 
@@ -41,34 +53,36 @@ export async function debugTestThing(WoT: IWoT) {
   };
 
   // STATE PROPERTY
-  const stateProperty = thing.getProperty<boolean>('state');
+  const stateProperty = thing.getProperty('state');
 
-  stateProperty.onRead((): IPromiseLikeOrValue<boolean> => {
+  stateProperty.onRead((): boolean => {
     return state;
   });
 
-  stateProperty.onWrite(setState);
+  stateProperty.onWrite((value: boolean) => {
+    setState(value);
+  });
 
-  stateProperty.onObserve((): IPromiseLikeOrValue<void> => {
+  stateProperty.onObserve((): void => {
     console.log('observe state');
   });
 
-  stateProperty.onUnobserve((): IPromiseLikeOrValue<void> => {
+  stateProperty.onUnobserve((): void => {
     console.log('unobserve state');
   });
 
   // TOGGLE ACTION
-  const toggleAction = thing.getAction<boolean, boolean>('toggle');
+  const toggleAction = thing.getAction('toggle');
 
-  toggleAction.onInvoke((_state: boolean = !state): IPromiseLikeOrValue<boolean> => {
+  toggleAction.onInvoke((_state: boolean = !state): boolean => {
     setState(_state);
-    return state;
+    return _state;
   });
 
   // ON-TOGGLE EVENT
-  const stateChangeEvent = thing.getEvent<boolean>('state-change');
+  const stateChangeEvent = thing.getEvent('state-change');
 
   // expose the thing
-  await thing.expose();
+  await thing.expose({ abortable }).toPromise();
   console.info(`[READY] "${thing.getDescription().title}"`);
 }
